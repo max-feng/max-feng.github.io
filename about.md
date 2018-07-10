@@ -6,31 +6,16 @@ tags: about
 ---
 
 ### 联系方式
-
-Email: baotiao@gmail.com
-
+- Email: max.feng.bao@gmail.com
+- Email: fengzunbao@126.com
 - [Blog][1]
-- [Stackoverflow][7]
 - [Linkedin][2]
-- [Twitter][3]
-- [Facebook][4]
-- [微博][5]
-- [Instagram][6]
 
-
-[1]: http://baotiao.github.com/
-[2]: http://www.linkedin.com/profile/view?id=145231990&trk=nav_responsive_tab_profile
-[3]: https://twitter.com/baotiao
-[4]: https://www.facebook.com/
-[5]: http://weibo.com/1832563813/profile?rightmod=1&wvr=5&mod=personinfo
-[6]: http://instagram.com/czz19891012#
-[7]: http://stackoverflow.com/users/634415/baotiao
-
+[1]: http://max-feng.github.com/
+[2]: https://www.linkedin.com/in/遵宝-冯-03bb11101/
 
 ### 专业技能
-
-- 熟悉linux, C/C++, awk, Shell脚本
-- 用过erlang, python, php
+- 熟悉linux, C/C++, Erlang, Golang
 - 掌握基本的数据结构和算法
-- 喜欢Mac, 喜欢Vim, 不喜欢IDE
-- 了解网络编程和分布式系统
+- 分布式系统
+- Emacs死党

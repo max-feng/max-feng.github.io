@@ -8,8 +8,11 @@
         <a href="{{ page.url }}">{{ page.title }}</a>
     {% endif %}
 {% endfor %}
-{% for page in site.pages %}
-    {% if page.tags contains "paper" %}
-        <a href="{{ page.url }}">{{ page.title }}</a>
-    {% endif %}
-{% endfor %}
+
+<ul>
+  {% for post in site.posts %}
+    <li>
+      <a href="{{ post.url }}">{{ post.title }}</a>
+    </li>
+  {% endfor %}
+</ul>
