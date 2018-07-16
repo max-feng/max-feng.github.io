@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Specifying System
+title: Specifying System (1)
 summary: Specifying System TLA+
 tags: [ distribute, tla+, formula]
 ---
