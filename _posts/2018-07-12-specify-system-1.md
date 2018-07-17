@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Specifying System (1)
-summary: Specifying System TLA+
+summary: 概述 Specifying System TLA+
 tags: [ distribute, tla+, formula]
 ---
 

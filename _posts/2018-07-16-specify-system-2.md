@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Specifying System (2)
-summary: Specifying System TLA+
+summary: DieHard Specifying System TLA+
 tags: [ distribute, tla+, formula]
 ---
 
