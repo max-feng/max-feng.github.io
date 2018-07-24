@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Specifying System (1)
+title: Specifying System (3)
 summary: 时钟 Specifying System TLA+
 tags: [ distribute, tla+, formula]
 ---
