@@ -49,7 +49,7 @@ tags: [ distribute, tla+ ]
 	3. 计算D(i) /\ E时，应用同样的规则，先计算D(i)
 	4. 如果D(i)为TRUE，计算E
 
-### 第二个不同点	
+		# 第二个不同点	
 * 如何计算primed变量
 	+ 计算x' = e时，首先把x'赋值为null，然后计算e的值给x'，返回TRUE；
 	+ 计算x' \in S，等价于 \E v \in S : x' = v;
@@ -112,8 +112,8 @@ tags: [ distribute, tla+ ]
 	+ 整个Next的后继状态一共有1个。
 
 
-	
+​	
 
 
 
-	
+​	
