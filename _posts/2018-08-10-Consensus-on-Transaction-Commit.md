@@ -46,7 +46,7 @@ tags: [ 2PC, 3PC, Paxos, Commit, paper ]
 
 当一个RM发现不能完成自己的那部分事务时就进入abort状态。
 
-![image-20180810104719095]({{ site.url }}/images/2018-08-11-1-2pc.{{ site.url }})
+![image-20180810104719095]({{ site.url }}/images/2018-08-10-paxos-commit-2-rm-state.jpg)
 
 另外，FLP定理指出在一个确定的纯异步的环境下是不可能达成stability和consistency，所以本算法假设消息是最终在一定时间内可达到的。事务提交协议的Liveness如下：
 - Non-Triviality：如果在算法执行过程中网络没有故障，那么：
@@ -85,7 +85,7 @@ next-state描述任意RM所有可能的状态转换：
 	4. 如果TM收到的所有RM消息都是prepared，则进入committed状态，并给所有的RM发送committed消息；
 	5. 否则，TM进入aborted状态，并给所有RM发送aborted消息，RM收到aborted消息后进入aborted状态；
 
-![image-20180810113345344]({{ site.url }}/images/2018-08-11-2-2pc.jpg)
+![image-20180810113345344]({{ site.url }}/images/2018-08-10-paxos-commit-3.1-2pc-flow.jpg)
 
 像其他的异步算法处理failure一样，2PC执行过程中，发送任意消息前都会把当前状态持久化。比如TM收到一个prepared消息后，先持久化prepared状态在介质上，然后在内存中进入prepared状态。当发生failure，TM重启后从介质上读取到之前的状态，并继续执行2PC算法。理论上，宕机和机器pause是等价的。
 
@@ -222,7 +222,172 @@ acceptor出现故障是很容易理解的，因为acceptor之间运行的是Paxo
 
 如果RM或者事务的发起者Leader失败了，事务提交协议就暂时hang住了。只要有进程使用上述过程尝试学习该事务的执行结果，都会推动事务的继续前进。比如，RM在发送phase2a消息后，超时了没有收到后续的消息。RM尝试向Leader学习事务的执行结果，Leader使用新的ballot运行标准paxos协议发送phase2a消息，最终Leader学习到所有RM的状态，然后回复给这个RM。
 
-### 7 总结
+
+
+## 7 总结
 2PC是经典的事务提交协议，也被称为是同步的协议，因为2PC是不能容错的，一旦TM出现故障其他RM必须同步的等TM恢复过来。
 Paxos Commit引入了多个TM，只要多数派正常运行，就不会阻塞事务提交协议的运行。
 在正常failure-free的场景下，Paxos Commit只比2PC多一个消息时延，在经过Fast Paxos优化后，这个多出来的消息时延也可以被消除掉。理论上达到了非阻塞协议的最小时延。
+
+
+
+## 8 TLA+代码
+作者附带了TLA+的形式化描述，并没有包含failover相关的逻辑。通过tla+也能进一步精确的了解算法。
+
+```matlab
+----------------------------- MODULE PaxosCommit ----------------------------
+EXTENDS Integers
+
+Maximum(S) == 
+  LET Max[T \in SUBSET S] == 
+        IF T = {} THEN -1
+                  ELSE LET n    == CHOOSE n \in T : TRUE
+                           rmax == Max[T \ {n}]
+                       IN  IF n \geq rmax THEN n ELSE rmax
+  IN  Max[S]
+
+CONSTANT RM,             \* The set of resource managers.
+         Acceptor,       \* The set of acceptors.
+         Majority,       \* The set of majorities of acceptors
+         Ballot          \* The set of ballot numbers
+
+ASSUME  \* We assume these properties of the declared constants.
+  /\ Ballot \subseteq Nat
+  /\ 0 \in Ballot
+  /\ Majority \subseteq SUBSET Acceptor
+  /\ \A MS1, MS2 \in Majority : MS1 \cap MS2 # {}
+
+
+Message ==
+  [type : {"phase1a"}, ins : RM, bal : Ballot \ {0}] 
+      \cup
+  [type : {"phase1b"}, ins : RM, mbal : Ballot, bal : Ballot \cup {-1},
+   val : {"prepared", "aborted", "none"}, acc : Acceptor] 
+      \cup
+  [type : {"phase2a"}, ins : RM, bal : Ballot, val : {"prepared", "aborted"}]
+      \cup
+  [type : {"phase2b"}, acc : Acceptor, ins : RM, bal : Ballot,  
+   val : {"prepared", "aborted"}] 
+      \cup
+  [type : {"Commit", "Abort"}]
+  
+-----------------------------------------------------------------------------
+VARIABLES
+  rmState,
+  aState,
+  msgs
+
+PCTypeOK ==  
+  /\ rmState \in [RM -> {"working", "prepared", "committed", "aborted"}]
+  /\ aState  \in [RM -> [Acceptor -> [mbal : Ballot,
+                                      bal  : Ballot \cup {-1},
+                                      val  : {"prepared", "aborted", "none"}]]]
+  /\ msgs \in SUBSET Message
+
+PCInit ==
+  /\ rmState = [rm \in RM |-> "working"]
+  /\ aState  = [ins \in RM |-> 
+                 [ac \in Acceptor 
+                    |-> [mbal |-> 0, bal  |-> -1, val  |-> "none"]]]
+  /\ msgs = {}
+  
+Send(m) == msgs' = msgs \cup {m}
+
+RMPrepare(rm) == 
+  /\ rmState[rm] = "working"
+  /\ rmState' = [rmState EXCEPT ![rm] = "prepared"]
+  /\ Send([type |-> "phase2a", ins |-> rm, bal |-> 0, val |-> "prepared"])
+  /\ UNCHANGED aState
+  
+RMChooseToAbort(rm) ==
+  /\ rmState[rm] = "working"
+  /\ rmState' = [rmState EXCEPT ![rm] = "aborted"]
+  /\ Send([type |-> "phase2a", ins |-> rm, bal |-> 0, val |-> "aborted"])
+  /\ UNCHANGED aState
+
+RMRcvCommitMsg(rm) ==
+  /\ [type |-> "Commit"] \in msgs
+  /\ rmState' = [rmState EXCEPT ![rm] = "committed"]
+  /\ UNCHANGED <<aState, msgs>>
+
+RMRcvAbortMsg(rm) ==
+  /\ [type |-> "Abort"] \in msgs
+  /\ rmState' = [rmState EXCEPT ![rm] = "aborted"]
+  /\ UNCHANGED <<aState, msgs>>
+-----------------------------------------------------------------------------
+Phase1a(bal, rm) ==
+  /\ Send([type |-> "phase1a", ins |-> rm, bal |-> bal])
+  /\ UNCHANGED <<rmState, aState>>
+
+Phase2a(bal, rm) ==
+  /\ ~\E m \in msgs : /\ m.type = "phase2a"
+                      /\ m.bal = bal
+                      /\ m.ins = rm
+  /\ \E MS \in Majority :    
+        LET mset == {m \in msgs : /\ m.type = "phase1b"
+                                  /\ m.ins  = rm
+                                  /\ m.mbal = bal 
+                                  /\ m.acc  \in MS}
+            maxbal == Maximum({m.bal : m \in mset})
+            val == IF maxbal = -1 
+                     THEN "aborted"
+                     ELSE (CHOOSE m \in mset : m.bal = maxbal).val
+        IN  /\ \A ac \in MS : \E m \in mset : m.acc = ac
+            /\ Send([type |-> "phase2a", ins |-> rm, bal |-> bal, val |-> val])
+  /\ UNCHANGED <<rmState, aState>>
+
+Decide == 
+  /\ LET Decided(rm, v) ==
+           \E b \in Ballot, MS \in Majority : 
+             \A ac \in MS : [type |-> "phase2b", ins |-> rm, 
+                              bal |-> b, val |-> v, acc |-> ac ] \in msgs
+     IN  \/ /\ \A rm \in RM : Decided(rm, "prepared")
+            /\ Send([type |-> "Commit"])
+         \/ /\ \E rm \in RM : Decided(rm, "aborted")
+            /\ Send([type |-> "Abort"])
+  /\ UNCHANGED <<rmState, aState>>
+-----------------------------------------------------------------------------
+Phase1b(acc) ==  
+  \E m \in msgs : 
+    /\ m.type = "phase1a"
+    /\ aState[m.ins][acc].mbal < m.bal
+    /\ aState' = [aState EXCEPT ![m.ins][acc].mbal = m.bal]
+    /\ Send([type |-> "phase1b", 
+             ins  |-> m.ins, 
+             mbal |-> m.bal, 
+             bal  |-> aState[m.ins][acc].bal, 
+             val  |-> aState[m.ins][acc].val,
+             acc  |-> acc])
+    /\ UNCHANGED rmState
+
+Phase2b(acc) == 
+  /\ \E m \in msgs : 
+       /\ m.type = "phase2a"
+       /\ aState[m.ins][acc].mbal \leq m.bal
+       /\ aState' = [aState EXCEPT ![m.ins][acc].mbal = m.bal,
+                                   ![m.ins][acc].bal  = m.bal,
+                                   ![m.ins][acc].val  = m.val]
+       /\ Send([type |-> "phase2b", ins |-> m.ins, bal |-> m.bal, 
+                  val |-> m.val, acc |-> acc])
+  /\ UNCHANGED rmState
+-----------------------------------------------------------------------------
+PCNext ==  \* The next-state action
+  \/ \E rm \in RM : \/ RMPrepare(rm) 
+                    \/ RMChooseToAbort(rm) 
+                    \/ RMRcvCommitMsg(rm) 
+                    \/ RMRcvAbortMsg(rm)
+  \/ \E bal \in Ballot \ {0}, rm \in RM : Phase1a(bal, rm) \/ Phase2a(bal, rm)
+  \/ Decide
+  \/ \E acc \in Acceptor : Phase1b(acc) \/ Phase2b(acc) 
+-----------------------------------------------------------------------------
+PCSpec == PCInit /\ [][PCNext]_<<rmState, aState, msgs>>
+
+
+THEOREM PCSpec => PCTypeOK
+-----------------------------------------------------------------------------
+TC == INSTANCE TCommit
+
+THEOREM PCSpec => TC!TCSpec
+=============================================================================
+
+```
