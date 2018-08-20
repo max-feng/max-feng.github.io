@@ -60,11 +60,8 @@ tags: [ 2PC, 3PC, Paxos, Commit, paper ]
 
 next-state描述任意RM所有可能的状态转换：
 1. Prepare：任意RM可以从working状态进入prepared状态；
-
 2. Decide：对于任意RM，
-
    a）如果在prepared状态并且此时的canCommit为TRUE，那么这个RM就可以进入committed状态；
-
    b）如果RM在working或者prepared并且此时的notCommitted为TRUE，那么就进入aborted状态；
 
    
@@ -72,18 +69,18 @@ next-state描述任意RM所有可能的状态转换：
 ## 3 Two-Phase Commit
 ### 3.1 2PC协议
 2PC提交协议是一个事务提交协议，通过一个TM做为协调者来推动所有的RM在事务提交协议上的前进。TM的状态有：
-	1. init；
-	2. preparing；
-	3. committed；
-	4. aborted；
+1. init；
+2. preparing；
+3. committed；
+4. aborted；
 
 
 2PC算法流程：
-	1. 某个RM进入prepared状态，并给TM发送prepared消息；
-	2. TM进入preparing状态并向其他RM发送prepared消息；
-	3. RM收到prepared消息后，如果此时是working状态，则进入prepared状态，并给TM回prepared消息；
-	4. 如果TM收到的所有RM消息都是prepared，则进入committed状态，并给所有的RM发送committed消息；
-	5. 否则，TM进入aborted状态，并给所有RM发送aborted消息，RM收到aborted消息后进入aborted状态；
+1. 某个RM进入prepared状态，并给TM发送prepared消息；
+2. TM进入preparing状态并向其他RM发送prepared消息；
+3. RM收到prepared消息后，如果此时是working状态，则进入prepared状态，并给TM回prepared消息；
+4. 如果TM收到的所有RM消息都是prepared，则进入committed状态，并给所有的RM发送committed消息；
+5. 否则，TM进入aborted状态，并给所有RM发送aborted消息，RM收到aborted消息后进入aborted状态；
 
 ![image-20180810113345344]({{ site.url }}/images/2018-08-10-paxos-commit-3.1-2pc-flow.jpg)
 
@@ -91,10 +88,10 @@ next-state描述任意RM所有可能的状态转换：
 
 ### 3.2 2PC的复杂度
 事务提交协议复杂度的重要指标是算法在正常运行到committed状态的消息数。
-    1. 初始RM给TM发送prepard消息 (1 message)；
-    2. TM给其他RM发送prepared消息 (N-1message)；
-    3. 每个RM给TM回复prepared的response消息 (N-1 message)；
-    4. TM给所有的RM发送Committed消息 (Nmessage)；
+1. 初始RM给TM发送prepard消息 (1 message)；
+2. TM给其他RM发送prepared消息 (N-1message)；
+3. 每个RM给TM回复prepared的response消息 (N-1 message)；
+4. TM给所有的RM发送Committed消息 (Nmessage)；
 
 可以看到：
 
@@ -112,22 +109,22 @@ next-state描述任意RM所有可能的状态转换：
 ## 4. Paxos Commit
 ### 4.1 Paxos一致性算法
 paxos算法是多数派算法，算法保证最多只有一个v最终choosen出来。在节点数为2F+1的集群中，可以容忍F个节点failure。算法也分成两个阶段：
-	1. Phase 1a： leader选择一个ballot来构造prepare消息进行广播，期望获得其他acceptor节点授权对该ballot的执行权利；
-	2. Phase 1b： acceptor收到prepare消息后
-		a. 如果没有把执行权承诺给更大的ballot，就承诺给当前这个ballot，并持久化ballot，承诺后续不在接受比ballot小的执行权，同时返回此时acceptor已经接受的v；
-		b. 否则，就拒绝这个balotl的执行权；
-	3. Phase 2a：leader在收到多数acceptor的响应后，两种可能的结果
-		a. Free：没有任何acceptor发出过phase2本消息，也就是目前为止没有choosen一个v；此时，leader可以发射出自己v，通常选择client发过来的第一个v；
-		b. Forced：某些acceptor曾经发出过2b消息，那么选出最大ballot对应的v；此时的这个v可能已经达成了一致意见，leader能做的就是帮助其他acceptor也对这个v达成一致意见。使用v发射请求；
-	4. Phase 2b：当acceptor收到<balotl, v>，如果没有承诺过比ballot更大的执行权，就执行这个<ballot, v>；否则忽略；
-	5. Phase 3： 当leader收到多数派的Phase2b响应后，就可以得出结论：v已经被多数派达成一致意见；
+1. Phase 1a： leader选择一个ballot来构造prepare消息进行广播，期望获得其他acceptor节点授权对该ballot的执行权利；
+2. Phase 1b： acceptor收到prepare消息后
+	a. 如果没有把执行权承诺给更大的ballot，就承诺给当前这个ballot，并持久化ballot，承诺后续不在接受比ballot小的执行权，同时返回此时acceptor已经接受的v；
+	b. 否则，就拒绝这个balotl的执行权；
+3. Phase 2a：leader在收到多数acceptor的响应后，两种可能的结果
+	a. Free：没有任何acceptor发出过phase2本消息，也就是目前为止没有choosen一个v；此时，leader可以发射出自己v，通常选择client发过来的第一个v；
+	b. Forced：某些acceptor曾经发出过2b消息，那么选出最大ballot对应的v；此时的这个v可能已经达成了一致意见，leader能做的就是帮助其他acceptor也对这个v达成一致意见。使用v发射请求；
+4. Phase 2b：当acceptor收到<balotl, v>，如果没有承诺过比ballot更大的执行权，就执行这个<ballot, v>；否则忽略；
+5. Phase 3： 当leader收到多数派的Phase2b响应后，就可以得出结论：v已经被多数派达成一致意见；
 
 当ballot=0时可以跳过phase1，因此不会有比ballot=0更小的v达成一致意见。此时直接发送自己的v。phase1的作用有两个：
-	1. 得到ballot的执行权；
-	2. 得到此时可能已经达成一致的v；
+1. 得到ballot的执行权；
+2. 得到此时可能已经达成一致的v；
 paxos算法可以从两方面优化：
-	1. phase 2a消息只发送到多数派上；
-	2. phase 2b消息直接回给client；
+1. phase 2a消息只发送到多数派上；
+2. phase 2b消息直接回给client；
 
 ### 4.2 Paxos Commit
 在2PC的算法中TM会出现单点故障。可以借助多副本的一致性算法，TM充当client对要做出的决定（committed/aborted）发射出proposal，一致性算法最终决议出一个值。Mohan, Strong, and Finkelstein提出了同步算法，TM等待所有的RM回复prepare消息后再发射proposal。但是，等待RM回复给TM消息要多一个消息的延迟。下面讨论Paxos Commit算法是如何消除掉这个消息延迟的。
@@ -135,42 +132,43 @@ paxos算法可以从两方面优化：
 Paxos Commit算法使用独立的Paxos instance，即每个RM对应一个Paxos instance，都可以独立的发出committed/aborted的proposal。最终只有当所有instance被choosen的值都是committed，事务才会被committed。这种每个RM一个instance的想法可以应用到所有的一致性算法上，但是如何优化时延就和具体的算法息息相关了。
 
 Paxos Commit算法使用2F+1个acceptors和一个current leader。所以，Paxos Commit算法的角色有：
-	1. N个RM；
-	2. 2F+1个acceptor；
-	3. 一个leader；
+1. N个RM；
+2. 2F+1个acceptor；
+3. 一个leader；
 我们假设RM知道所有acceptor的信息(比如IP)。Paxos算法中ballot=0的phase2a消息可以选定任意的v。通常是由leader发送phase2a消息，显然，可以通过事先选定任意角色发送phase2a消息，Paxos算法任然能够正确运行。在Paxos Commit中，RM各自发送phase2a消息，选定的value为committed或者aborted。
 
 ![image-20180813113951090]({{ site.url }}/images/2018-08-10-paxos-commit.jpg)
 
 Paxos Commit算法的执行过程如下：
-	1. 任意一个想要进行事务提交的RM发送BeginCommit消息给leader；
-	2. leader向所有其他RM发送Prepare消息；
-![image-20180820003332021]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-1.jpg)		
-	3. 如果RM决定要参与这个事务的commit，就发送<phase2a ballot=0 value=Prepared>消息给所有的acceptor；
+1. 任意一个想要进行事务提交的RM发送BeginCommit消息给leader；
+2. leader向所有其他RM发送Prepare消息；
+	[image-20180820003332021]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-1.jpg)		
+3. 如果RM决定要参与这个事务的commit，就发送<phase2a ballot=0 value=Prepared>消息给所有的acceptor；
 ![image-20180820003504656]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-2.jpg)
-	4. 否则，RM发送<phase2a ballot=0 value=Aborted>消息给所有的acceptor；
-	5. acceptor每收到phase2a消息，都向leader回复phase2b消息（*Paxos Commit算法比其他算法优化的地方*）；
+4. 否则，RM发送<phase2a ballot=0 value=Aborted>消息给所有的acceptor；
+5. acceptor每收到phase2a消息，都向leader回复phase2b消息（*Paxos Commit算法比其他算法优化的地方*）；
 ![image-20180820003632772]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-3.jpg)
-	6. leader可以知道：对于某个RM的instance，如果收到了F+1个phase2b的回复，而且这些回复的value是一致的，那么根据Paxos算法，就可以认为choosen了一个值；
-	7. 如果leader确定了所有RM的instance值，并且全部都是Prepared，则事务可以提交，leader向所有的RM发送commit消息，促使RM进入committed；
+6. leader可以知道：对于某个RM的instance，如果收到了F+1个phase2b的回复，而且这些回复的value是一致的，那么根据Paxos算法，就可以认为choosen了一个值；
+7. 如果leader确定了所有RM的instance值，并且全部都是Prepared，则事务可以提交，leader向所有的RM发送commit消息，促使RM进入committed；
 ![image-20180820003721347]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-4.jpg)
-	8. 如果leader确定了所有RM的instance值，并且有一个是Aborted，则事务可以放弃执行，leader向所有的RM发送abort消息，促使RM进入Aborted；
+8. 如果leader确定了所有RM的instance值，并且有一个是Aborted，则事务可以放弃执行，leader向所有的RM发送abort消息，促使RM进入Aborted；
 
 上述算法还有优化的空间：
-	1. acceptor可以将所有的phase2b消息打包一次性发给leader；
-	2. acceptor可以将phase2b消息直接发给RM，RM替代leader的角色，这样可以减少延迟，但是增加了总的消息数目；
-	3. 如果acceptor收到过abort的phase2a消息，可以忽略其他消息，直接通知leader或者RM进入aborted状态；
+1. acceptor可以将所有的phase2b消息打包一次性发给leader；
+2. acceptor可以将phase2b消息直接发给RM，RM替代leader的角色，这样可以减少延迟，但是增加了总的消息数目；
+3. 如果acceptor收到过abort的phase2a消息，可以忽略其他消息，直接通知leader或者RM进入aborted状态；
 
 每个RM的instance在ballot=0的消息中可能达不到choosen状态，leader会因为超时，主动使用更大的ballot执行phase1a的流程。如果leader执行到phase2a阶段时，发现没有任何value（可能RM网络分区导致发给acceptor的<phase2a, ballot=0>的消息没有达到，或者其他什么原因），则尝试让Aborted达成choosen，一旦决定这样做，RM曾经发给acceptor的<phase2a, ballot=0>消息就会被拒绝掉。
 leader的超时处理必须是发送aborted消息，因为，在leader超时时可能有RM发送给某个acceptor的abort消息刚刚达到，而没有达成choosen状态。此时leader恰好超时，但是没有收到这个acceptor的phase1b消息。
 
 ### 4.3 The Cost of Paxos Commit
 下面计算Paxos Commit算法在事务最终达成commit的消息数目：
-	1. 事务发起者RM发送一个BeginCommit消息 (1个)；
-	2. leader向其他RM发送Prepare消息(N-1个)；
-	3. 每个RM广播<phase2a, ballot=0>消息，fast paxos只需要发送F+1个 N(F+1)个；
-	4. acceptor打包发送phase2b给acceptor (F+1个)；
-	5. leader广播最终的committed或者aborted消息（N个）；
+1. 事务发起者RM发送一个BeginCommit消息 (1个)；
+2. leader向其他RM发送Prepare消息(N-1个)；
+3. 每个RM广播<phase2a, ballot=0>消息，fast paxos只需要发送F+1个 N(F+1)个；
+4. acceptor打包发送phase2b给acceptor (F+1个)；
+5. leader广播最终的committed或者aborted消息（N个）；
+
 最终，***RM要经历5个消息延迟得知事务是被committed还是aborted***。总的消息数目是(N+1)(F+3)-2个。如果第一个RM和leader在同一个node上可以节省一个消息，另外，第一个RM可以把BeginCommit消息和phase2a消息打包，又能节省一个消息，那么一共是N+1)(F+3)-4个。如果acceptor个数比RM多，每个acceptor和RM部署在一起，那么每个RM广播phase2a消息时，发到本node上的消息就可以省略了，那么又能节省出F+1个，最终剩下N(F+3)-3个。
 
 如果phase2b消息直接发给RM，那么可以节省一个消息延迟，只要4个延迟就能完成事务提交。但是会多出N(F+1)个消息。
@@ -178,7 +176,6 @@ leader的超时处理必须是发送aborted消息，因为，在leader超时时�
 从磁盘写入的次数上，Paxos Commit中一个acceptor可以把多个RM的多个instance一次性打包写盘。
 
 ![image-20180816140955213]({{ site.url }}/images/2018-08-10-paxos-vs-2pc-msg.jpg)
-
 
 
 ## 5 Paxos Commit和 2PC Commit的角色对比
@@ -193,8 +190,8 @@ leader的超时处理必须是发送aborted消息，因为，在leader超时时�
 为了支持可变RM数目的事务，引入一个registrar角色。registrar地位和RM类似，做为一个额外的RM，记录参与事务的RM集合。不同的是registrar在Paxos协议中的输入是一个RM集合，而不是commit/abort。同样的，给registrar也分配一个Paxos实例。
 
 一个事务提交的条件是：
-	1. regstar选定一个RM集合，并且在leader上达成一致；
-	2. RM集合中每个RM对应的Paxos实例都choosen出Prepared；
+1. regstar选定一个RM集合，并且在leader上达成一致；
+2. RM集合中每个RM对应的Paxos实例都choosen出Prepared；
 
 ### 6.1 Transaction Creation
 每个节点本地都有启动一个transaction service。通过这个service，RM可以创建和管理事务。创建事务的时候，service构造出descriptor，包含：uid，registrar，initial leader，其他候选leader，acceptors。
@@ -222,13 +219,10 @@ acceptor出现故障是很容易理解的，因为acceptor之间运行的是Paxo
 
 如果RM或者事务的发起者Leader失败了，事务提交协议就暂时hang住了。只要有进程使用上述过程尝试学习该事务的执行结果，都会推动事务的继续前进。比如，RM在发送phase2a消息后，超时了没有收到后续的消息。RM尝试向Leader学习事务的执行结果，Leader使用新的ballot运行标准paxos协议发送phase2a消息，最终Leader学习到所有RM的状态，然后回复给这个RM。
 
-
-
 ## 7 总结
 2PC是经典的事务提交协议，也被称为是同步的协议，因为2PC是不能容错的，一旦TM出现故障其他RM必须同步的等TM恢复过来。
 Paxos Commit引入了多个TM，只要多数派正常运行，就不会阻塞事务提交协议的运行。
 在正常failure-free的场景下，Paxos Commit只比2PC多一个消息时延，在经过Fast Paxos优化后，这个多出来的消息时延也可以被消除掉。理论上达到了非阻塞协议的最小时延。
-
 
 
 ## 8 TLA+代码
