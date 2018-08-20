@@ -140,16 +140,24 @@ Paxos Commit算法使用2F+1个acceptors和一个current leader。所以，Paxos
 
 Paxos Commit算法的执行过程如下：
 1. 任意一个想要进行事务提交的RM发送BeginCommit消息给leader；
+
 2. leader向所有其他RM发送Prepare消息；
-![image-20180820003332021]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-1.jpg)	
+  [image-20180820003332021]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-1.jpg)	
+
 3. 如果RM决定要参与这个事务的commit，就发送<phase2a ballot=0 value=Prepared>消息给所有的acceptor；
-![image-20180820003504656]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-2.jpg)
+  ![image-20180820003504656]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-2.jpg)
+
 4. 否则，RM发送<phase2a ballot=0 value=Aborted>消息给所有的acceptor；
+
 5. acceptor每收到phase2a消息，都向leader回复phase2b消息（*Paxos Commit算法比其他算法优化的地方*）；
-![image-20180820003632772]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-3.jpg)
+  ![image-20180820003632772]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-3.jpg)
+
 6. leader可以知道：对于某个RM的instance，如果收到了F+1个phase2b的回复，而且这些回复的value是一致的，那么根据Paxos算法，就可以认为choosen了一个值；
+
 7. 如果leader确定了所有RM的instance值，并且全部都是Prepared，则事务可以提交，leader向所有的RM发送commit消息，促使RM进入committed；
-![image-20180820003721347]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-4.jpg)
+
+  ![image-20180820223853909]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-4-commit.jpg)
+
 8. 如果leader确定了所有RM的instance值，并且有一个是Aborted，则事务可以放弃执行，leader向所有的RM发送abort消息，促使RM进入Aborted；
 
 上述算法还有优化的空间：
