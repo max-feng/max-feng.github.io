@@ -142,7 +142,7 @@ Paxos Commit算法的执行过程如下：
 1. 任意一个想要进行事务提交的RM发送BeginCommit消息给leader；
 
 2. leader向所有其他RM发送Prepare消息；
-  [image-20180820003332021]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-1.jpg)	
+  ![image-20180820003332021]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-1.jpg)	
 
 3. 如果RM决定要参与这个事务的commit，就发送<phase2a ballot=0 value=Prepared>消息给所有的acceptor；
   ![image-20180820003504656]({{ site.url }}/images/2018-08-10-paxos-commit-4.2-2.jpg)
