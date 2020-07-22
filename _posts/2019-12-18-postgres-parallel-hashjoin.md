@@ -1,6 +1,13 @@
+---
+layout: post
+title: PostgreSQL 并行hashjoin 源码解读
+summary: PostgreSQL的并行hashjoin使得多个进程并发的scan表，并发的build hash table，并发的join，并且动态的调整负载
+tags: [ PostgreSQL, hash join,  paper ]
+---
 
 
 # PostgreSQL的并行查询简介
+
 并行查询是 PostgreSQL 的一个大特性，对于单一sql查询，从传统单一进程，提升到多个进程协同完成。
 
 并行查询使用了更多的cpu/mem/io资源，提高了任务的执行效率，在cpu=8以内执行效率线性增长。
